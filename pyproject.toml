@@ -1,0 +1,15 @@
+[project]
+name = "loccer"
+version = "0.0.1"
+authors = [
+    { name = "Martin Carnogursky", email="admin@sourcecode.ai"}
+]
+description = "Local error logging"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+
+
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
