@@ -33,9 +33,9 @@ def cleanup_hooks():
 
 
 @pytest.fixture(scope="function")
-def in_memory(cleanup_hooks):
+def in_memory(cleanup_hooks, integration):
     mem_out = InMemoryOutput()
-    loccer.install(preserve_previous=False, output_handlers=(mem_out,))
+    loccer.install(preserve_previous=False, output_handlers=(mem_out,), integrations=(integration,))
     yield mem_out
 
 
@@ -46,7 +46,7 @@ def integration():
 
 @pytest.fixture(scope="function", autouse=True)
 def capture_override(in_memory, integration):
-    hook = partial(loccer.excepthook, integrations=(integration,))
-    lc = loccer.Loccer(handlers=(in_memory,), suppress_exception=True, exc_hook=hook)
+    hook = partial(loccer.excepthook)
+    lc = loccer.Loccer(output_handlers=(in_memory,), integrations=(integration,), suppress_exception=True, exc_hook=hook)
     with patch.object(loccer, "capture_exception", new=lc):
         yield lc
