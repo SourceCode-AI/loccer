@@ -7,3 +7,8 @@ class InMemoryOutput(OutputBase):
 
     def output(self, exc: ExceptionData) -> None:
         self.logs.append(exc.as_json())
+
+
+class NullOuput(OutputBase):
+    def output(self, exc: ExceptionData) -> None:
+        return None

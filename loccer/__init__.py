@@ -5,10 +5,11 @@ import typing as t
 from functools import partial, wraps
 
 from . import bases
+from .outputs.misc import NullOuput
 from .outputs.stderr import StderrOutput
 
 
-ORIGINAL_EXC_HOOK = sys.excepthook
+DEFAULT_OUTPUT = StderrOutput()
 
 
 class HybridContext:
@@ -25,7 +26,6 @@ class HybridContext:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-        print("context exit")
         self.exc_handler(exc_type, exc_val, exc_tb)
         return self.suppress_exception
 
@@ -65,11 +65,15 @@ def excepthook(
         type,
         value,
         traceback,
-        output_handlers:  t.Optional[t.Sequence[bases.OutputBase]] = None,
+        output_handlers:  t.Sequence[bases.OutputBase] = (),
+        integrations: t.Sequence[bases.Integration] = (),
         previous_hook=None
     ):
     exc_data = bases.ExceptionData.from_exception(value, capture_locals=True)
     exc_data.traceback = traceback
+
+    for x in integrations:
+        exc_data.integrations_data[x.NAME] = x.gather()
 
     if output_handlers:
         for out_handler in output_handlers:
@@ -82,14 +86,13 @@ def excepthook(
 def install(
     *,
     preserve_previous=True,
-    output_handlers:  t.Optional[t.Sequence[bases.OutputBase]] = None,
+    output_handlers:  t.Sequence[bases.OutputBase] = (DEFAULT_OUTPUT),
+    integrations: t.Sequence[bases.Integration] = ()
     ):
-    if output_handlers is None:
-        output_handlers = (StderrOutput(),)
-
     previous = sys.excepthook
     kwargs = {
-        "output_handlers": output_handlers
+        "output_handlers": output_handlers,
+        "integrations": integrations
     }
     if preserve_previous:
         kwargs["previous_hook"] = previous
