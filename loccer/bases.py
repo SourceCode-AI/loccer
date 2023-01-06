@@ -21,7 +21,7 @@ class ExceptionData(traceback.TracebackException):
         }
 
         if self.traceback:
-            data["globals"] = {name: repr(value) for name, value in self.traceback.tb_frame.f_globals.items()}
+            data["globals"] = {name: repr(value) for name, value in self.traceback.tb_frame.f_globals.items() if name not in ("__builtins__",)}
 
         for frame in self.stack:
             data["frames"].append(frame_as_json(frame))
