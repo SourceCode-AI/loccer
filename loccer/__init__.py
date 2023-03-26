@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import typing as t
 from functools import partial, wraps
+from unittest.mock import patch
 
 import loccer
 from . import bases
@@ -95,7 +96,10 @@ def excepthook(
         integrations: t.Sequence[bases.Integration] = (),
         previous_hook=None
     ):
-    exc_data = bases.ExceptionData.from_exception(value, capture_locals=True)
+
+    with patch("traceback.repr", new=_repr_mock):
+        exc_data = bases.ExceptionData.from_exception(value, capture_locals=True)
+
     exc_data.traceback = traceback
 
     for x in integrations:
@@ -107,6 +111,17 @@ def excepthook(
 
     if previous_hook:
         previous_hook(type, value, traceback)
+
+
+def _repr_mock(obj: t.Any) -> str:
+    try:
+        return repr(obj)
+    except Exception as exc:
+        exc_desc = str(exc.__class__.__name__)
+        if exc.args:
+            exc_desc = f"{exc_desc}: {'; '.join(exc.args)}"
+
+        return f"Error getting repr of the object: `{exc_desc}`"
 
 
 def install(

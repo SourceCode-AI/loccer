@@ -29,6 +29,20 @@ def test_capture_exception_context_manager(in_memory):
     assert in_memory.logs[0]["msg"] == "test_capture_exception_context_manager"
 
 
+def test_repr_error(in_memory):
+
+    class A:
+        def __repr__(self):
+            raise RuntimeError("repr")
+
+        def err(self):
+            raise RuntimeError("err")
+
+    with loccer.capture_exception:
+        obj = A()
+        obj.err()
+
+
 def test_capture_exception_decorator(in_memory):
     assert in_memory.logs == []
 
