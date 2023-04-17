@@ -3,13 +3,13 @@ import platform
 from getpass import getuser
 import typing as t
 
-from ..bases import Integration
+from ..bases import Integration, LoccerOutput
 
 
 class PlatformIntegration(Integration):
     NAME = "platform"
 
-    def gather(self) -> t.Dict[str, t.Any]:
+    def gather(self, context: LoccerOutput) -> t.Dict[str, t.Any]:
         uname = platform.uname()
 
         data = {

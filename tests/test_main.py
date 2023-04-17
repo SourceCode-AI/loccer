@@ -13,8 +13,10 @@ def test_capture_exception_call(in_memory):
         loccer.capture_exception()
 
     assert len(in_memory.logs) == 1
-    assert in_memory.logs[0]["exc_type"] == "AssertionError"
-    assert in_memory.logs[0]["msg"] == "test_capture_exception_call"
+    log = in_memory.logs[0]
+    assert log["loccer_type"] == "exception"
+    assert log["exc_type"] == "AssertionError"
+    assert log["msg"] == "test_capture_exception_call"
 
 
 def test_capture_exception_context_manager(in_memory):
@@ -74,3 +76,14 @@ def test_basic_integration(integration, in_memory):
     assert integration.NAME in log["integrations"]
     assert log["integrations"][integration.NAME]["test_basic_integration"] == val, log["integrations"]
 
+
+def test_log_metadata(in_memory):
+    log_data = {"a": "b"}
+
+    assert in_memory.logs == []
+    loccer.capture_exception.log_metadata(log_data)
+    assert len(in_memory.logs) == 1
+    log = in_memory.logs[0]
+    assert log["loccer_type"] == "metadata_log"
+    assert log["data"] == log_data
+    assert isinstance(log["integrations"], dict)

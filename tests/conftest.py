@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 import loccer
-from loccer.bases import Integration
+from loccer.bases import Integration, LoccerOutput
 from loccer.outputs.misc import InMemoryOutput
 
 
@@ -19,7 +19,7 @@ class PyTestIntegration(Integration):
     def __init__(self):
         self.data = {}
 
-    def gather(self) -> t.Dict[str, t.Any]:
+    def gather(self, context: LoccerOutput) -> t.Dict[str, t.Any]:
         return self.data.copy()
 
 

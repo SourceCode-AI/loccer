@@ -5,7 +5,7 @@ import json
 import gzip
 import typing as t
 
-from ..bases import OutputBase, ExceptionData
+from ..bases import OutputBase, LoccerOutput
 
 
 class JSONStreamOutput(OutputBase):
@@ -23,7 +23,7 @@ class JSONStreamOutput(OutputBase):
                 "ensure_ascii": False
             }
 
-    def output(self, exc: ExceptionData) -> None:
+    def output(self, exc: LoccerOutput) -> None:
         data = json.dumps(exc.as_json(), **self.dump_kwargs)
         self.fd.write(data.strip() + os.linesep)
 
@@ -49,7 +49,7 @@ class JSONFileOutput(OutputBase):
         self.max_size = max_size
         self.max_files = max_files
 
-    def output(self, exc: ExceptionData) -> None:
+    def output(self, exc: LoccerOutput) -> None:
         with open(self.filename, "a") as fd:
             stream_out = JSONStreamOutput(fd=fd, compressed=self.compressed)
             stream_out.output(exc)
