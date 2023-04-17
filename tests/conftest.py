@@ -1,3 +1,4 @@
+import json
 import sys
 import typing as t
 from functools import partial
@@ -37,6 +38,9 @@ def in_memory(cleanup_hooks, integration):
     mem_out = InMemoryOutput()
     loccer.install(preserve_previous=False, output_handlers=(mem_out,), integrations=(integration,))
     yield mem_out
+    for x in mem_out.logs:
+        print(x)
+        json.dumps(x)
 
 
 @pytest.fixture(scope="function")

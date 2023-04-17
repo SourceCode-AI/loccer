@@ -36,7 +36,6 @@ class FlaskContextIntegration(Integration):
                 "headers": dict(flask.request.headers),
                 "user_agent": flask.request.headers.get("User-Agent", "<unknown>"),
                 "is_json": flask.request.is_json,
-                "env": dict(flask.request.environ),
                 "form": dict(flask.request.form),
                 "content_length": flask.request.content_length,
                 "content_type": flask.request.content_type,

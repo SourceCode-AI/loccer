@@ -1,11 +1,11 @@
 [project]
 name = "loccer"
-version = "0.0.1"
+version = "1.1"
 authors = [
     { name = "Martin Carnogursky", email="admin@sourcecode.ai"}
 ]
 description = "Local error logging"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 
 
