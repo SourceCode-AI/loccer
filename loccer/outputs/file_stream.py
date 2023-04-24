@@ -32,7 +32,7 @@ class JSONStreamOutput(OutputBase):
             }
 
     def output(self, exc: LoccerOutput) -> None:
-        data = json.dumps(exc.as_json(), **self.dump_kwargs)
+        data = json.dumps(exc.as_json(), cls=LoccerJSONEncoder, **self.dump_kwargs)
         self.fd.write(data.strip() + os.linesep)
 
 
