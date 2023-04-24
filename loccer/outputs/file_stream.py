@@ -8,6 +8,14 @@ import typing as t
 from ..bases import OutputBase, LoccerOutput
 
 
+class LoccerJSONEncoder(json.JSONEncoder):
+    def default(self, o: t.Any) -> t.Any:
+        if not (isinstance(o, (int, str, list, bool, float, dict)) and o is not None):
+            return repr(o)
+
+        return json.JSONEncoder.default(self, o)
+
+
 class JSONStreamOutput(OutputBase):
     def __init__(self, fd: t.TextIO, compressed=True):
         self.fd = fd
