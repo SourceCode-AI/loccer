@@ -58,16 +58,10 @@ class FlaskContextIntegration(Integration):
             }
 
             if self.capture_body:
-                if flask.request.is_json:
-                    data["json_payload"] = flask.request.get_json(silent=False)
-                else:
-                    data["json_payload"] = None
-
-                if not data["json_payload"]:
-                    try:
-                        data["raw_payload"] = flask.request.get_data(as_text=True)
-                    except Exception:
-                        data["raw_payload"] = "Loccer N/A; error getting raw request data"
+                try:
+                    data["raw_payload"] = flask.request.get_data(as_text=True)
+                except Exception:
+                    data["raw_payload"] = "Loccer N/A; error getting raw request data"
 
         else:
             data["flask_context"] = False
