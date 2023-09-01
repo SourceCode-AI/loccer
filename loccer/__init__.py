@@ -75,6 +75,8 @@ class Loccer(HybridContext):
         self.exc_hook = exc_hook
         self.output_handlers = output_handlers
         self.integrations = integrations
+        for x in integrations:
+            x.activate(self)
 
     @property
     def exc_handler(self) -> T_exc_hook:
@@ -118,7 +120,10 @@ def excepthook(
     exc_data.traceback = traceback
 
     for x in integrations:
-        exc_data.integrations_data[x.NAME] = x.gather(exc_data)
+        try:
+            exc_data.integrations_data[x.NAME] = x.gather(exc_data)
+        except Exception:
+            exc_data.integrations_data[x.NAME] = "CRITICAL: error while calling the integration to gather data"
 
     if output_handlers:
         for out_handler in output_handlers:
@@ -175,3 +180,14 @@ def install(
     )
     capture_exception = lc
     return lc
+
+
+def restore() -> None:
+    """
+    Restore exception handling to the previous state
+    Can be used to "uninstall" loccer at runtime
+    """
+    global capture_exception
+
+    capture_exception = HybridContext()
+    sys.excepthook = sys.__excepthook__

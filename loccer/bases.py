@@ -63,6 +63,9 @@ class Integration(metaclass=ABCMeta):
     """
     NAME: t.ClassVar[str]  #: Required class var, name of the integration, must be unique
 
+    def activate(self, loccer_obj) -> None:
+        pass
+
     @abstractmethod
     def gather(self, context: LoccerOutput) -> JSONType:
         """
