@@ -37,7 +37,7 @@ def func():
 func()
 ```
 
-Locer is capable also of collecting additional data through integrations, the current list of built-in integration supported are as follows:
+Loccer is capable also of collecting additional data through integrations, the current list of built-in integration supported are as follows:
 
 - `platform` integration:
 
@@ -90,7 +90,7 @@ quart_ctx.init_app(app)
 
 
 @app.route("/")
-def index_error():
+async def index_error():
     raise RuntimeError("test exception")
 
 
@@ -196,6 +196,10 @@ The `JSONFileOutput` emits one JSON object per line, the example output below ha
           "coro": "<coroutine object serve at 0x102b07840>",
           "is_done": false
         }
+      },
+      "global_context": {
+        "<ContextVar name='quart.app_ctx' at 0x10206f0b0>": "<quart.ctx.AppContext object at 0x1025bc950>",
+        "<ContextVar name='quart.request_ctx' at 0x10206f100>": "<quart.ctx.RequestContext object at 0x1025bc150>"
       }
     },
     "quart": {

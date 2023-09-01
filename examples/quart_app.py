@@ -17,7 +17,7 @@ quart_ctx.init_app(app)
 
 
 @app.route("/")
-def index_error():
+async def index_error():
     raise RuntimeError("test exception")
 
 

@@ -4,6 +4,7 @@ import sys
 
 from .. import get_hybrid_context
 from ..bases import Integration, LoccerOutput, JSONType
+from ..utils import quick_format
 
 
 class AsyncioContextIntegration(Integration):
@@ -38,6 +39,9 @@ class AsyncioContextIntegration(Integration):
                 ctx = self._loop_ctx.get()
                 if ctx is not None:
                     data["loop_context"] = self.dump_contextvars(ctx)
+
+                global_ctx = contextvars.copy_context()
+                data["global_context"] = self.dump_contextvars(global_ctx)
             except LookupError:
                 pass
 
@@ -66,7 +70,7 @@ class AsyncioContextIntegration(Integration):
     @staticmethod
     def dump_contextvars(ctx: contextvars.Context) -> JSONType:
         return {
-            name: repr(value) for (name, value) in ctx.items()
+            quick_format(name): repr(value) for (name, value) in ctx.items()
         }
 
     @staticmethod
