@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import os
 import sys
+import traceback as tb_module
 import typing as t
 from functools import partial, wraps
 from unittest.mock import patch
 
 from . import bases
-from .outputs.misc import NullOuput
+from .outputs.misc import NullOutput
 from .outputs.stderr import StderrOutput
 from .integrations.platform_context import PlatformIntegration
 from .ltypes import T_exc_val, T_exc_type, T_exc_tb, T_exc_hook, JSONType
@@ -122,8 +124,9 @@ def excepthook(
     for x in integrations:
         try:
             exc_data.integrations_data[x.NAME] = x.gather(exc_data)
-        except Exception:
-            exc_data.integrations_data[x.NAME] = "CRITICAL: error while calling the integration to gather data"
+        except Exception as exc:
+            desc = ["CRITICAL: error while calling the integration to gather data: "] + list(tb_module.format_exception(exc))
+            exc_data.integrations_data[x.NAME] = os.linesep.join(desc)
 
     if output_handlers:
         for out_handler in output_handlers:

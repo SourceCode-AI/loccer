@@ -65,6 +65,7 @@ class JSONFileOutput(OutputBase):
         if self.max_size:
             rotate(self.filename, self.max_size, self.max_files)
 
+
 def rotate(filename: str, max_size: int, max_files: int = 10) -> bool:
     fstat = os.stat(filename)
     if fstat.st_size < max_size:

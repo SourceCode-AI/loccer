@@ -9,6 +9,6 @@ class InMemoryOutput(OutputBase):
         self.logs.append(exc.as_json())
 
 
-class NullOuput(OutputBase):
+class NullOutput(OutputBase):
     def output(self, exc: LoccerOutput) -> None:
         return None

@@ -36,7 +36,8 @@ class AsyncioContextIntegration(Integration):
         if self._dump_ctx:
             try:
                 ctx = self._loop_ctx.get()
-                data["loop_context"] = self.dump_contextvars(ctx)
+                if ctx is not None:
+                    data["loop_context"] = self.dump_contextvars(ctx)
             except LookupError:
                 pass
 
