@@ -21,19 +21,19 @@ async def index_error():
     raise RuntimeError("test exception")
 
 
-
 loccer.install(
-    output_handlers=(JSONFileOutput(
-        filename="errors.log",
-        max_files=3,
-        max_size=(1024**2) * 10,  # 10MB
-        compressed=True,
-    ),),
-    integrations=(
-        PlatformIntegration(),
+    output_handlers=(
+        JSONFileOutput(
+            filename="errors.log",
+            max_files=3,
+            max_size=(1024**2) * 10,  # 10MB
+            compressed=True,
+        ),
+    ),
+    integrations=loccer.DEFAULT_INTEGRATIONS + (
         asyncio_ctx,
         quart_ctx
-    )
+    ),
 )
 
 
@@ -42,4 +42,4 @@ if __name__ == "__main__":
     # Some integrations may require additional activation outside the `loccer.install` call
     loop.set_exception_handler(asyncio_ctx.loop_exception_handler)
     app.run(debug=True, loop=loop, port=8080)
-
+    # now go and open the page at http://localhost:8080/ to generate an error report

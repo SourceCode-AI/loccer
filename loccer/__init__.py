@@ -11,26 +11,27 @@ from . import bases
 from .outputs.misc import NullOutput
 from .outputs.stderr import StderrOutput
 from .integrations.platform_context import PlatformIntegration
-from .ltypes import T_exc_val, T_exc_type, T_exc_tb, T_exc_hook, JSONType
+from .integrations.packages_context import PackagesIntegration
+from .ltypes import T_exc_val, T_exc_type, T_exc_tb, T_exc_hook, JSONType, T, U, V
 
 
-DEFAULT_OUTPUT = (
-    StderrOutput(),
-)
+DEFAULT_OUTPUT = (StderrOutput(),)
 DEFAULT_INTEGRATIONS = (
     PlatformIntegration(),
+    PackagesIntegration(),
 )
 
 
 class HybridContext:
-    def __init__(self, suppress_exception: bool=False):
-        self.suppress_exception = suppress_exception
+    def __init__(self, suppress_exception: bool = False):
+        self.suppress_exception: bool = suppress_exception
 
-    def __call__(self, func=None):
+    def __call__(self, func: t.Optional[t.Callable[..., U]] = None) -> t.Optional[t.Callable[..., t.Optional[U]]]:
         if callable(func):
             return self._decorator(func)
         else:
             self._call()
+            return None
 
     def __enter__(self) -> HybridContext:
         return self
@@ -40,26 +41,38 @@ class HybridContext:
         return self.suppress_exception
 
     @property
-    def exc_handler(self) -> t.Optional[T_exc_hook]:
+    def exc_handler(self) -> T_exc_hook:
         return sys.excepthook
 
-    def log_metadata(self, data: JSONType):
+    def emit_output(self, output: bases.LoccerOutput) -> None:
+        return None
+
+    def log_metadata(self, data: JSONType) -> None:
         pass
 
-    def from_exception(self, exc: BaseException) -> None:
-        self.exc_handler(type(exc), exc, exc.__traceback__)
+    def from_exception(self, exc: t.Optional[BaseException]) -> None:
+        if exc is not None:
+            self.exc_handler(type(exc), exc, exc.__traceback__)
 
-    def _decorator(self, func):
+    def _decorator(self, func: t.Callable[..., U]) -> t.Callable[..., t.Optional[U]]:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: T, **kwargs: V) -> t.Optional[U]:
             with self:
                 return func(*args, **kwargs)
 
+            return None
+
         return wrapper
 
-    def _call(self):
+    def _call(self) -> None:
         exc_type, exc_val, exc_tb = sys.exc_info()
-        self.exc_handler(exc_type, exc_val, exc_tb)
+        if exc_type and exc_val:
+            self.exc_handler(exc_type, exc_val, exc_tb)
+
+
+T_loccer_exchook = t.Callable[
+    [T_exc_type, T_exc_val, T_exc_tb, t.Optional[HybridContext], t.Optional[T_exc_hook]], None  # pragma: no mutate
+]  # pragma: no mutate
 
 
 class Loccer(HybridContext):
@@ -67,72 +80,73 @@ class Loccer(HybridContext):
         self,
         output_handlers: t.Sequence[bases.OutputBase] = DEFAULT_OUTPUT,
         integrations: t.Sequence[bases.Integration] = DEFAULT_INTEGRATIONS,
-        exc_hook=None, **kwargs
+        exc_hook: t.Optional[T_loccer_exchook] = None,
+        **kwargs: t.Any,
     ):
         super().__init__(**kwargs)
+        self.exc_hook: T_loccer_exchook
 
         if exc_hook is None:
-            exc_hook = excepthook
+            self.exc_hook = excepthook
+        else:
+            self.exc_hook = exc_hook
 
-        self.exc_hook = exc_hook
         self.output_handlers = output_handlers
         self.integrations = integrations
+        self.session = bases.Session(self)
+
         for x in integrations:
             x.activate(self)
 
     @property
     def exc_handler(self) -> T_exc_hook:
-        kwargs = {}
-        if self.integrations:
-            kwargs["integrations"] = self.integrations
+        return partial(self.exc_hook, lc=self)
+
+    def emit_output(self, output: bases.LoccerOutput) -> None:
+        for x in self.integrations:
+            try:
+                integration_data = x.gather(output)
+                if integration_data is not None:
+                    output.integrations_data[x.NAME] = integration_data
+            except Exception as exc:
+                desc = ["CRITICAL: error while calling the integration to gather data:"] + list(
+                    tb_module.format_exception(type(exc), exc, exc.__traceback__)
+                )
+                output.integrations_data[x.NAME] = os.linesep.join(desc)
 
         if self.output_handlers:
-            kwargs["output_handlers"] = self.output_handlers
+            sess = self.session.captured
+            if not sess:
+                self.session.captured = True
 
-        if kwargs:
-            return partial(self.exc_hook, **kwargs)
-        else:
-            return self.exc_hook
+            for out_handler in self.output_handlers:
+                if not sess:
+                    out_handler.output(self.session, lc=self)
 
-    def log_metadata(self, data: JSONType):
+                out_handler.output(output, lc=self)
+
+    def log_metadata(self, data: JSONType) -> None:
         log = bases.MetadataLog(data)
-
-        for x in self.integrations:
-            log.integrations_data[x.NAME] = x.gather(log)
-
-        for out_handler in self.output_handlers:
-            out_handler.output(log)
+        self.emit_output(log)
 
 
-capture_exception = HybridContext()
+capture_exception = HybridContext()  # pragma: no mutate
 
 
 def excepthook(
-        type: bases.T_exc_type,
-        value: bases.T_exc_val,
-        traceback: bases.T_exc_tb,
-        output_handlers:  t.Sequence[bases.OutputBase] = (),
-        integrations: t.Sequence[bases.Integration] = (),
-        previous_hook: t.Optional[T_exc_hook]=None
-    ):
-
+    type: T_exc_type,
+    value: T_exc_val,
+    traceback: T_exc_tb,
+    lc: t.Optional[HybridContext],
+    previous_hook: t.Optional[T_exc_hook] = None,
+) -> None:
     with patch("traceback.repr", new=_repr_mock):
         exc_data = bases.ExceptionData.from_exception(value, capture_locals=True)
 
-    exc_data.traceback = traceback
+    if lc is not None:
+        lc.emit_output(exc_data)
 
-    for x in integrations:
-        try:
-            exc_data.integrations_data[x.NAME] = x.gather(exc_data)
-        except Exception as exc:
-            desc = ["CRITICAL: error while calling the integration to gather data: "] + list(tb_module.format_exception(exc))
-            exc_data.integrations_data[x.NAME] = os.linesep.join(desc)
-
-    if output_handlers:
-        for out_handler in output_handlers:
-            out_handler.output(exc_data)
-
-    if previous_hook:
+    if previous_hook is not None:
         previous_hook(type, value, traceback)
 
 
@@ -153,10 +167,10 @@ def get_hybrid_context() -> HybridContext:
 
 def install(
     *,
-    preserve_previous=True,
-    output_handlers:  t.Sequence[bases.OutputBase] = DEFAULT_OUTPUT,
-    integrations: t.Sequence[bases.Integration] = DEFAULT_INTEGRATIONS
-    ) -> Loccer:
+    preserve_previous: bool = True,
+    output_handlers: t.Sequence[bases.OutputBase] = DEFAULT_OUTPUT,
+    integrations: t.Sequence[bases.Integration] = DEFAULT_INTEGRATIONS,
+) -> Loccer:
     """
     Installs loccer as a global exception handler and activates all it's integrations
 
@@ -166,21 +180,18 @@ def install(
     :return: Instance of loccer that has been installed as the global exception hook
     """
     global capture_exception
-    previous = sys.excepthook
-    kwargs = {
-        "output_handlers": output_handlers,
-        "integrations": integrations
-    }
-    if preserve_previous:
-        kwargs["previous_hook"] = previous
 
-    exc_hook = partial(excepthook, **kwargs)
+    lc = Loccer(output_handlers=output_handlers, integrations=integrations)
+    previous_hook: t.Optional[T_exc_hook]
+
+    if preserve_previous:
+        previous_hook = sys.excepthook
+    else:
+        previous_hook = None
+
+    exc_hook = partial(excepthook, lc=lc, previous_hook=previous_hook)
     sys.excepthook = exc_hook
-    lc = Loccer(
-        output_handlers=output_handlers,
-        integrations=integrations,
-        exc_hook=exc_hook
-    )
+    lc.exc_hook = exc_hook
     capture_exception = lc
     return lc
 

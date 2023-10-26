@@ -1,11 +1,11 @@
 [project]
 name = "loccer"
-version = "1.2"
+version = "2.0.0"
 authors = [
     { name = "Martin Carnogursky", email="admin@sourcecode.ai"}
 ]
 description = "Local error logging"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<=3.12"
 license = {text = "MIT"}
 
 
@@ -16,7 +16,7 @@ dev = [
   "build>=0.9"
 ]
 test_integrations = [
-    "Flask>=2.0",
+    "Flask>2.0",
     "Quart>=0.18.4",
     "blinker>1.0"
 ]
@@ -29,3 +29,24 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 markers = []
+filterwarnings = [
+    "error"
+]
+
+[tool.mypy]
+warn_return_any = true
+python_version = "3.9"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "quart",
+    "flask",
+    "werkzeug.exceptions"
+]
+ignore_missing_imports = true
+
+
+[tool.black]
+target-version = ["py39"]
+line-length = 120

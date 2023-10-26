@@ -10,7 +10,7 @@ def test_file_rotation(tmp_path):
     content = "TEST FILE CONTENT"
     max_size = 10
     assert len(prefix) < max_size
-    assert len(prefix+content) > max_size
+    assert len(prefix + content) > max_size
 
     fname = "test_file.log"
     fpath = tmp_path / fname
@@ -24,14 +24,14 @@ def test_file_rotation(tmp_path):
     assert fpath.exists()
     assert not first_bak.exists()
 
-    fpath.write_text(prefix+content)
+    fpath.write_text((prefix + content)[:max_size])
     out = rotate(str(fpath), max_size, max_files=2)
     assert out is True
     assert fpath.exists()
     assert fpath.read_text() == ""
     assert first_bak.exists()
     payload = gzip.decompress(first_bak.read_bytes()).decode()
-    assert payload == prefix+content
+    assert payload == (prefix + content)[:max_size]
 
     fpath.write_text(prefix + content)
     out = rotate(str(fpath), max_size, max_files=2)
@@ -43,14 +43,14 @@ def test_file_rotation(tmp_path):
     assert payload == prefix + content
     assert second_bak.exists()
     payload = gzip.decompress(second_bak.read_bytes()).decode()
-    assert payload == prefix + content
+    assert payload == (prefix + content)[:max_size]
 
     fpath.write_text(prefix + content)
     out = rotate(str(fpath), max_size, max_files=2)
     assert out is True
     assert first_bak.exists()
     assert second_bak.exists()
-    assert not (tmp_path/f"{fname}.2.gz").exists()
+    assert not (tmp_path / f"{fname}.2.gz").exists()
 
 
 def test_invalid_json_file_output():
