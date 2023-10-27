@@ -10,8 +10,8 @@ from ..bases import Integration, LoccerOutput, JSONType
 
 
 class T_File(typing.TypedDict):
-    filename: str
-    form_name: str
+    filename: t.Optional[str]
+    form_name: t.Optional[str]
     content_type: str
     content_length: int
     headers: dict[str, str]
@@ -21,14 +21,14 @@ class T_Flask(typing.TypedDict, total=False):  # pragma: no mutate
     flask_context: bool
     flask_version: str
     endpoint: str
-    client_ip: str
+    client_ip: t.Optional[str]
     url: str
     method: str
     headers: dict[str, str]
     user_agent: str
     is_json: bool
     form: dict[str, JSONType]
-    content_length: int
+    content_length: t.Optional[int]
     content_type: str
     files: dict[str, T_File]
     cookies: dict[str, str]

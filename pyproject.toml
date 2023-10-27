@@ -37,6 +37,7 @@ filterwarnings = [
 warn_return_any = true
 python_version = "3.9"
 disallow_untyped_defs = true
+disable_error_code = ["method-assign"]
 
 [[tool.mypy.overrides]]
 module = [

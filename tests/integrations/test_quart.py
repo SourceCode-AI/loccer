@@ -108,7 +108,6 @@ def test_defaults():
     assert qint.capture_4xx is False
     assert qint.capture_5xx is True
     assert qint.capture_body is False
-    assert qint.original_exc_handler == orig_exc_handler
     assert qapp.log_exception != orig_exc_handler
     assert qapp.config["PROPAGATE_EXCEPTIONS"] is False
     assert callable(qapp.log_exception)
@@ -157,16 +156,22 @@ async def test_capture_options(cap_4, cap_5, code, error, client, in_memory):
             assert in_memory.logs == []
 
 
-def test_exc_handler_patch():
-    arg = object()
-    kw = object()
-
-    m = MagicMock()
+def test_quart_log_exception_monkey_patch():
+    qint = QuartContextIntegration()
+    qapp = quart.Quart(__name__)
     with (
-        patch("loccer.integrations.quart_context.get_hybrid_context") as hcm,
-        patch("sys.exc_info") as exc_info_m
+        patch.object(qapp, "log_exception", autospec=True) as m,
+        patch("loccer.integrations.quart_context.get_hybrid_context") as mhc,
     ):
-        exc_info_m.return_value = (42,)*3
-        QuartContextIntegration.exc_handler_patch(arg, original=m, kw=kw)
-        m.assert_called_once_with(arg, kw=kw)
-        hcm.assert_called_once()
+        assert qapp.log_exception is m
+        qint.init_app(qapp)
+        assert qapp.log_exception is not m
+
+        qapp.log_exception((None,) * 3)
+        mhc.assert_not_called()
+
+        qapp.log_exception((42, None, 42))
+        mhc.assert_not_called()
+
+        qapp.log_exception((42,) * 3)
+        mhc.assert_called_once_with()

@@ -8,22 +8,27 @@ import quart
 
 from .. import get_hybrid_context
 from ..bases import Integration, LoccerOutput
-from ..ltypes import JSONType, T, U, V
+from ..ltypes import JSONType, T, U, V, T_exc, T_exc_tb, TracebackType
 
 
 class T_Quart(t.TypedDict, total=False):  # pragma: no mutate
     quart_context: bool
     quart_version: str
     endpoint: str
-    client_ip: str
+    client_ip: t.Optional[str]
     url: str
     method: str
     headers: dict[str, str]
     user_agent: str
     is_json: bool
-    content_length: int
+    content_length: t.Optional[int]
     content_type: str
     cookies: dict[str, t.Union[list[str], str]]
+
+
+T_qhandler = t.Callable[
+    [t.Union[tuple[type, BaseException, TracebackType], tuple[None, None, None]]], None
+]  # pragma: no mutate
 
 
 class QuartContextIntegration(Integration):
@@ -79,8 +84,17 @@ class QuartContextIntegration(Integration):
 
     def init_app(self, quart_app: quart.Quart) -> None:
         quart_app.config["PROPAGATE_EXCEPTIONS"] = False
-        self.original_exc_handler = quart_app.log_exception
-        quart_app.log_exception = functools.partial(self.exc_handler_patch, original=self.original_exc_handler)
+        original_exc_handler = quart_app.log_exception
+
+        def _log_exception(
+            exception_info: t.Union[tuple[type, BaseException, TracebackType], tuple[None, None, None]]
+        ) -> None:
+            if (exc := exception_info[1]) is not None:
+                get_hybrid_context().from_exception(exc)
+
+            return original_exc_handler(exception_info)
+
+        quart_app.log_exception = _log_exception
 
         if not getattr(quart, "signals_available", True):  # pragma: no mutate
             warnings.warn(UserWarning("Signals in Quart are not available (`blinker` is probably not installed)"))
@@ -106,13 +120,6 @@ class QuartContextIntegration(Integration):
                 "status_code": code,
             }
         )
-
-    @staticmethod  # pragma: no mutate
-    def exc_handler_patch(*args: T, original: t.Callable[..., V], **kwargs: U) -> V:
-        _, exc, _ = sys.exc_info()
-        if exc is not None:
-            get_hybrid_context().from_exception(exc)
-        return original(*args, **kwargs)
 
     @staticmethod  # pragma: no mutate
     async def handle_quart_exception(sender: t.Any, exception: Exception, **extra: t.Any) -> None:

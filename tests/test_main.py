@@ -153,10 +153,10 @@ def test_defaults_hybrid_context():
     assert hc.exc_handler is sys.excepthook
 
     with patch("sys.exc_info") as exc_info, patch("sys.excepthook") as m:
-        exc_info.return_value = (None,)*3
+        exc_info.return_value = (None,) * 3
         hc._call()
         m.assert_not_called()
-        exc_info.return_value = (42,)*3
+        exc_info.return_value = (42,) * 3
         hc._call()
         m.assert_called_once_with(42, 42, 42)
 
@@ -167,6 +167,7 @@ def test_defaults_hybrid_context():
         exc_info.return_value = (None, 42, None)
         hc._call()
         m.assert_not_called()
+
 
 def test_defaults_install():
     called = None
@@ -196,7 +197,7 @@ def test_defaults_install():
     lc2 = loccer.install()
     called = None
     try:
-        1 /0
+        1 / 0
     except ArithmeticError as exc:
         sys.excepthook(type(exc), exc, exc.__traceback__)
         assert called == (type(exc), exc, exc.__traceback__)
