@@ -29,8 +29,8 @@ jobs:
     - name: Run mypy
       run: mypy loccer
     - name: Run black
-      run: black
-    - name: Run mutation tests
-      run: mutmut run
+      run: black loccer tests
     - name: Run tox tests
       run: tox run
+    - name: Run mutation tests
+      run: mutmut run
