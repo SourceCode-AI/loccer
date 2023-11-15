@@ -29,10 +29,13 @@ jobs:
       run: |
         pytest tests/
     - name: Run mypy
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: mypy loccer
     - name: Run black
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: black loccer tests
     - name: Run tox tests
       run: tox run
     - name: Run mutation tests
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: mutmut run
