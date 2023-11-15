@@ -1,3 +1,4 @@
+import os
 import sys
 import uuid
 from unittest.mock import patch, MagicMock
@@ -227,7 +228,8 @@ def test_failing_integration(in_memory):
 
     loccer.capture_exception.integrations = (FailIntegration(),)
     loccer.capture_exception.log_metadata("Test data")
-    pattern = "CRITICAL: error while calling the integration to gather data:\nTraceback (most recent call last):\n"
+    sep = os.linesep
+    pattern = f"CRITICAL: error while calling the integration to gather data:{sep}Traceback (most recent call last):{sep}"
 
     assert len(in_memory.logs) == 2
     sess = in_memory.logs[0]
