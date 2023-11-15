@@ -34,7 +34,7 @@ class T_Python(t.TypedDict):
 
 
 class T_Platform(t.TypedDict, total=False):  # pragma: no mutate
-    username: str
+    username: t.Optional[str]
     hostname: str
     uname: T_Uname
     python: T_Python
@@ -60,8 +60,14 @@ class PlatformIntegration(Integration):
     def session_data(self) -> JSONType:
         uname = platform.uname()
 
+        try:
+            username = getuser()  # pragma: no mutate
+        except ModuleNotFoundError:
+            # This may happen on windows since getpass tries to import the `pwd` module as fallback
+            username = None  # pragma: no mutate
+
         data: T_Platform = {
-            "username": getuser(),
+            "username": username,
             "hostname": platform.node(),
             "uname": t.cast(T_Uname, uname._asdict()),
             "python": {
