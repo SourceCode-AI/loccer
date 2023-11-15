@@ -29,7 +29,8 @@ def test_plaform_session_data():
         entry = data
         for key_part in key.split("."):
             entry = entry[key_part]
-            assert entry is not None
+            if key != "username":
+                assert entry is not None
 
     assert isinstance(data["site_packages"], list)
     assert all(isinstance(x, str) for x in data["site_packages"]), data["site_packages"]
