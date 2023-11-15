@@ -84,7 +84,11 @@ def test_json_file_output(lc, log_sample, tmp_path):
 
     logs = []
     for x in fname.read_text().splitlines():
-        logs.append(json.loads(x))
+        if not (x := x.strip()):
+            continue
+
+        assert (log := json.loads(x)), repr(x)
+        logs.append(log)
 
     assert len(logs) == 1
     log = logs[0]
