@@ -1,4 +1,3 @@
-import resource
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +6,7 @@ import pytest
 
 pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="tests for linux only")
 
+import resource
 
 from loccer.integrations import resources as resint
 
