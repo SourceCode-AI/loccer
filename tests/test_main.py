@@ -229,12 +229,19 @@ def test_failing_integration(in_memory):
     loccer.capture_exception.integrations = (FailIntegration(),)
     loccer.capture_exception.log_metadata("Test data")
     sep = os.linesep
-    pattern = f"CRITICAL: error while calling the integration to gather data:{sep}Traceback (most recent call last):{sep}"
+    pattern1 = "CRITICAL: error while calling the integration to gather data:"
+    pattern2 = "Traceback (most recent call last):"
 
     assert len(in_memory.logs) == 2
     sess = in_memory.logs[0]
     fail_msg = sess["data"]["fail_integration"]
-    assert fail_msg.startswith(pattern), fail_msg
+
+    out_str = [x.rstrip() for x in fail_msg.splitlines()]
+    assert out_str[0].startswith(pattern1), out_str[0]
+    assert out_str[1].startswith(pattern2), out_str[1]
+
     log = in_memory.logs[1]
     fail_msg = log["integrations"]["fail_integration"]
-    assert fail_msg.startswith(pattern), fail_msg
+    out_str = [x.rstrip() for x in fail_msg.splitlines()]
+    assert out_str[0].startswith(pattern1), out_str[0]
+    assert out_str[1].startswith(pattern2), out_str[1]
