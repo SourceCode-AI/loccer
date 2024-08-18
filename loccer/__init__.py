@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import traceback as tb_module
@@ -8,6 +9,7 @@ from functools import partial, wraps
 from unittest.mock import patch
 
 from . import bases
+from . import tracing
 from .outputs.misc import NullOutput
 from .outputs.stderr import StderrOutput
 from .integrations.platform_context import PlatformIntegration
@@ -20,6 +22,7 @@ DEFAULT_INTEGRATIONS = (
     PlatformIntegration(),
     PackagesIntegration(),
 )
+DEFAULT_TRACE_FILE = "loccer_traces.tar"
 
 
 class HybridContext:
@@ -69,6 +72,12 @@ class HybridContext:
         if exc_type and exc_val:
             self.exc_handler(exc_type, exc_val, exc_tb)
 
+    def trace(self, label: str) -> tracing.Trace:
+        return tracing.Trace(label, finished_cb=self.trace_finished_callback)
+
+    def trace_finished_callback(self, trace: tracing.Trace) -> None:
+        pass
+
 
 T_loccer_exchook = t.Callable[
     [T_exc_type, T_exc_val, T_exc_tb, t.Optional[HybridContext], t.Optional[T_exc_hook]], None  # pragma: no mutate
@@ -81,6 +90,7 @@ class Loccer(HybridContext):
         output_handlers: t.Sequence[bases.OutputBase] = DEFAULT_OUTPUT,
         integrations: t.Sequence[bases.Integration] = DEFAULT_INTEGRATIONS,
         exc_hook: t.Optional[T_loccer_exchook] = None,
+        trace_file: t.Optional[str] = DEFAULT_TRACE_FILE,
         **kwargs: t.Any,
     ):
         super().__init__(**kwargs)
@@ -94,6 +104,7 @@ class Loccer(HybridContext):
         self.output_handlers = output_handlers
         self.integrations = integrations
         self.session = bases.Session(self)
+        self.trace_file = trace_file
 
         for x in integrations:
             x.activate(self)
@@ -125,9 +136,21 @@ class Loccer(HybridContext):
 
                 out_handler.output(output, lc=self)
 
+        if (tracer:=tracing.get_current()) is not None:
+            tracer.children.append(tracing.Event.from_loccer_output(output))
+
     def log_metadata(self, data: JSONType) -> None:
-        log = bases.MetadataLog(data)
+        log = bases.MetadataLog("Metadata log", extra=data)
         self.emit_output(log)
+
+    def trace_finished_callback(self, trace: tracing.Trace) -> None:
+        if self.trace_file is None:
+            return
+
+        # FIXME
+        from .outputs.tar import Tar
+        t = Tar(self.trace_file)
+        t.log_trace(trace)
 
 
 capture_exception = HybridContext()  # pragma: no mutate
@@ -170,6 +193,8 @@ def install(
     preserve_previous: bool = True,
     output_handlers: t.Sequence[bases.OutputBase] = DEFAULT_OUTPUT,
     integrations: t.Sequence[bases.Integration] = DEFAULT_INTEGRATIONS,
+    trace_file: t.Optional[str] = DEFAULT_TRACE_FILE,
+    enable_logging: bool|logging.Logger = True
 ) -> Loccer:
     """
     Installs loccer as a global exception handler and activates all it's integrations
@@ -181,7 +206,19 @@ def install(
     """
     global capture_exception
 
+    lc_logger = None
+
+    if enable_logging is True:
+        lc_logger = logging.getLogger(None)
+    elif isinstance(enable_logging, logging.Logger):
+        lc_logger = enable_logging
+
     lc = Loccer(output_handlers=output_handlers, integrations=integrations)
+
+    if lc_logger is not None:
+        log_handler = bases.LogHandler(lc)
+        lc_logger.addHandler(log_handler)
+
     previous_hook: t.Optional[T_exc_hook]
 
     if preserve_previous:
@@ -205,3 +242,10 @@ def restore() -> None:
 
     capture_exception = HybridContext()
     sys.excepthook = sys.__excepthook__
+
+
+
+span = tracing.HybridSpanContext
+
+def trace(label: str) -> tracing.Trace:
+    return get_hybrid_context().trace(label)

@@ -70,9 +70,9 @@ async def test_quart_enrichment(in_memory, client):
 
     assert len(in_memory.logs) == 2
     log = in_memory.logs[1]
-    assert log["loccer_type"] == "metadata_log"
-    assert log["data"]["msg"] == "Quart `500` response"
-    assert log["data"]["status_code"] == 500
+    assert log["loccer_type"] == "log"
+    assert log["extra"]["msg"] == "Quart `500` response"
+    assert log["extra"]["status_code"] == 500
     extra = log["integrations"]["quart"]
     assert extra["quart_context"] is True
     assert extra["quart_version"] == importlib.metadata.version("quart")

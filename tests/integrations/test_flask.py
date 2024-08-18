@@ -66,9 +66,9 @@ def test_flask_enrichment(in_memory, client):
 
     assert len(in_memory.logs) == 2
     log = in_memory.logs[1]
-    assert log["loccer_type"] == "metadata_log"
-    assert log["data"]["msg"] == "Flask `500` response"
-    assert log["data"]["status_code"] == 500
+    assert log["loccer_type"] == "log"
+    assert log["extra"]["msg"] == "Flask `500` response"
+    assert log["extra"]["status_code"] == 500
     extra = log["integrations"]["flask"]
     assert extra["flask_context"] is True
     assert extra["client_ip"] == "127.0.0.1"

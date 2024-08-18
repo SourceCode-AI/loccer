@@ -35,7 +35,7 @@ def test_plaform_session_data():
     assert isinstance(data["site_packages"], list)
     assert all(isinstance(x, str) for x in data["site_packages"]), data["site_packages"]
     assert isinstance(data["user_base"], str)
-    assert isinstance(data["user_site_packages"], list)
+    assert isinstance(data["user_site_packages"], str)
     assert all(isinstance(x, str) for x in data["user_site_packages"]), data["user_site_packages"]
     assert "enable_user_site" in data
 
@@ -50,7 +50,7 @@ def test_platform_integration(in_memory):
     assert isinstance(sess["data"]["platform"], dict)
 
     log = in_memory.logs[1]
-    assert "platform" not in log["data"]
+    assert "platform" not in log["extra"]
 
 
 def test_default():

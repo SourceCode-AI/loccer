@@ -4,6 +4,13 @@
 Loccer is a **zero-dependency** library for creating error logs on a local system. It is designed to be used in air-gaped networks and highly secure environments where alternatives like Sentry are not viable. Logs are stored by default as a json formatted object per line.
 
 
+Why choose loccer?
+------------------
+
+- **Zero external dependencies**, pure python. We take supply chain security very seriously and only use the built-in python modules.
+- **Full data control**. You know exactly what data and where it is produced. This is very important factor for highly secure systems, where you specifically need to specify a folder that will contain the produced data. You have also full control over what data is captured by extending or stripping it down.
+- **Easy to start**. No need to setup any servers that needs to be maintained. You only need 2 lines of code to get started with default configuration. 
+
 Usage
 -----
 

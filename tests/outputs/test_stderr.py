@@ -19,5 +19,5 @@ def test_stderr_output(capsys):
 
     data = json.loads(str_out)
     assert data
-    assert data["loccer_type"] == "metadata_log"
-    assert data["data"] == log_data, data
+    assert data["loccer_type"] == "log"
+    assert data["extra"] == log_data, data

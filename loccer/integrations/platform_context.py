@@ -41,7 +41,7 @@ class T_Platform(t.TypedDict, total=False):  # pragma: no mutate
     env: dict[str, str]
     site_packages: list[str]
     user_base: str
-    user_site_packages: list[str]
+    user_site_packages: str
     enable_user_site: t.Optional[bool]
 
 
@@ -80,7 +80,7 @@ class PlatformIntegration(Integration):
             "env": {},
             "site_packages": list(site.getsitepackages()),
             "user_base": site.getuserbase(),
-            "user_site_packages": list(site.getusersitepackages()),
+            "user_site_packages": site.getusersitepackages(),
             "enable_user_site": site.ENABLE_USER_SITE,
         }
 

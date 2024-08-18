@@ -1,7 +1,6 @@
 import io
 import json
 import uuid
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -92,5 +91,5 @@ def test_json_file_output(lc, log_sample, tmp_path):
 
     assert len(logs) == 1
     log = logs[0]
-    assert log["data"] == log_sample.data
+    assert log["extra"] == log_sample.extra
     assert log["session_id"] == lc.session.session_id

@@ -97,10 +97,11 @@ def test_log_metadata(in_memory):
     sess = in_memory.logs[0]
     assert sess["loccer_type"] == "session"
     log = in_memory.logs[1]
-    assert log["loccer_type"] == "metadata_log"
+    assert log["loccer_type"] == "log"
     assert log["session_id"] == sess["session_id"]
     assert sess["session_id"] is not None
-    assert log["data"] == log_data
+    assert isinstance(log["timestamp"], str)
+    assert log["extra"] == log_data, log
     assert isinstance(log["integrations"], dict)
 
 
@@ -120,7 +121,8 @@ def test_session_information(in_memory):
     assert isinstance(session_id, str)
     assert session_id == loccer.capture_exception.session.session_id
     assert sess["session_id"] == session_id
-    assert set(sess.keys()) == {"loccer_type", "session_id", "data"}
+    assert sess["timestamp"] == loccer.capture_exception.session.ts.isoformat()
+    assert set(sess.keys()) == {"loccer_type", "session_id", "data", "timestamp"}
 
     log = in_memory.logs[1]
     assert log["loccer_type"] == "exception"
@@ -133,7 +135,7 @@ def test_session_information(in_memory):
     # No session data will be generated because it is marked as already captured
     assert len(in_memory.logs) == 1
     log = in_memory.logs[0]
-    assert log["loccer_type"] == "metadata_log"
+    assert log["loccer_type"] == "log"
 
 
 def test_defaults_loccer():

@@ -56,7 +56,7 @@ def test_exception_handler(in_memory, asyncio_integration, loop):
     loop.call_exception_handler(ctx)
     assert len(in_memory.logs) == 2
     log = in_memory.logs[1]
-    assert log["data"]["msg"] == "Unknown exception in the asyncio loop"
+    assert log["extra"]["msg"] == "Unknown exception in the asyncio loop"
 
 
 def test_dump_coros(loop):

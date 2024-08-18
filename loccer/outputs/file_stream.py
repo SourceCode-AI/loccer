@@ -7,7 +7,7 @@ import json
 import gzip
 import typing as t
 
-from ..bases import OutputBase, LoccerOutput
+from ..bases import OutputBase, LoccerOutput, DEFAULT_MAX_LOG_SIZE, DEFAULT_MAX_LOGS
 
 if t.TYPE_CHECKING:
     from .. import Loccer
@@ -53,8 +53,8 @@ class JSONFileOutput(OutputBase):
         self,
         filename: str,
         compressed: bool = True,
-        max_size: int = ((2**20) * 10),
-        max_files: int = 10,
+        max_size: int = DEFAULT_MAX_LOG_SIZE,
+        max_files: int = DEFAULT_MAX_LOGS,
     ) -> None:
         """
         JSON output into file, one error report per line

@@ -3,15 +3,22 @@ from __future__ import annotations
 import abc
 from abc import ABCMeta, abstractmethod
 import datetime
+import logging
 import os
 import traceback
 import typing as t
 import uuid
+from logging.handlers import QueueHandler
 
 from .ltypes import T_exc_type, T_exc_val, T_exc_tb, JSONType
 
 if t.TYPE_CHECKING:
     from . import Loccer
+    from .tracing import Trace
+
+
+DEFAULT_MAX_LOG_SIZE = ((2**20) * 10)
+DEFAULT_MAX_LOGS = 10
 
 
 class T_Frame(t.TypedDict):
@@ -24,6 +31,7 @@ class T_Frame(t.TypedDict):
 
 class LoccerOutput(metaclass=abc.ABCMeta):
     def __init__(self) -> None:
+        self.id = uuid.uuid4()
         self.ts = datetime.datetime.now(datetime.timezone.utc)
         self.integrations_data: dict[str, JSONType] = {}
 
@@ -47,6 +55,7 @@ class ExceptionData(traceback.TracebackException, LoccerOutput):
     def as_json(self) -> dict[str, JSONType]:
         data: dict[str, JSONType] = {
             "loccer_type": "exception",
+            "id": self.id.hex,
             "timestamp": self.ts.isoformat(),
             "exc_type": self.exc_type.__name__,
             "msg": str(self),
@@ -71,22 +80,63 @@ class ExceptionData(traceback.TracebackException, LoccerOutput):
 
 
 class MetadataLog(LoccerOutput):
-    def __init__(self, data: JSONType) -> None:
+    def __init__(self, msg: str, *, extra: JSONType=None, level: t.Optional[str] = None, logger_name: t.Optional[str]=None, msg_pattern: t.Optional[str] = None) -> None:
         super().__init__()
-        self.data = data
+        self.msg = msg
+        self.msg_pattern = msg_pattern
+        self.extra = extra
+        self.level = level
+        self.logger_name = logger_name
+
+    @classmethod
+    def from_log_record(cls, record: logging.LogRecord) -> MetadataLog:
+        return cls(
+            msg=record.getMessage(),
+            extra=getattr(record, "context", {}),
+            level=record.levelname,
+            logger_name=record.name,
+            msg_pattern=record.msg
+        )
 
     def as_json(self) -> dict[str, JSONType]:
-        return {
-            "loccer_type": "metadata_log",
-            "data": self.data,
+        data = {
+            "loccer_type": "log",
+            "id": self.id.hex,
+            "timestamp": self.ts.isoformat(),
+            "msg": self.msg,
+            "extra": self.extra,
             "integrations": self.integrations_data,
         }
+
+        if self.logger_name is not None:
+            data["name"] = self.logger_name
+
+        if self.level is not None:
+            data["level"] = self.level
+
+        if self.msg_pattern is not None:
+            data["msg_pattern"] = self.msg_pattern
+
+        return data
+
+
+class LogHandler(logging.StreamHandler):
+    def __init__(self, lc: Loccer) -> None:
+        super().__init__()
+        self.lc = lc
+
+    def emit(self, record: logging.LogRecord) -> None:
+        log_data = MetadataLog.from_log_record(record)
+        self.lc.emit_output(log_data)
 
 
 class OutputBase(metaclass=ABCMeta):
     @abstractmethod  # pragma: no mutate
     def output(self, exc: LoccerOutput, lc: Loccer) -> None:
         ...
+
+    def log_trace(self, trace: Trace) -> None:
+        raise RuntimeError("Trace output is not supported for this output format")
 
 
 class Session(LoccerOutput):
@@ -119,6 +169,7 @@ class Session(LoccerOutput):
         return {
             "loccer_type": "session",
             "session_id": self.session_id,
+            "timestamp": self.ts.isoformat(),
             "data": self.session_data,
         }
 
